@@ -46,7 +46,7 @@ public class MockAsrDriver implements AsrDriver {
     private static final Logger log = Logger.getLogger(MockAsrDriver.class);
 
     private static final int DEFAULT_TIMEOUT = 10000;
-    private static final String TRANSCRIPTION_FINAL = "Final transcription.";
+    static final String TRANSCRIPTION_FINAL = "Final transcription.";
 
     // Dependencies
     private final ListeningScheduledExecutorService scheduler;
@@ -93,6 +93,7 @@ public class MockAsrDriver implements AsrDriver {
         if (this.running.compareAndSet(false, true)) {
             this.future = this.scheduler.schedule(new TranscriptionTask(), this.timeout, TimeUnit.MILLISECONDS);
             Futures.addCallback(future, new FutureCallback<String>() {
+
                 @Override
                 public void onSuccess(String result) {
                     if (MockAsrDriver.this.eventListener != null) {
@@ -124,7 +125,7 @@ public class MockAsrDriver implements AsrDriver {
     @Override
     public void write(byte[] bytes, int i, int i1) {
         if (this.running.get()) {
-            this.octetCount += i1 - 1;
+            this.octetCount += i1 - i;
             this.writeCount++;
         }
     }
@@ -144,11 +145,11 @@ public class MockAsrDriver implements AsrDriver {
         return 0;
     }
 
-    public int getOctetCount() {
+    int getOctetCount() {
         return octetCount;
     }
 
-    public int getWriteCount() {
+    int getWriteCount() {
         return writeCount;
     }
 
