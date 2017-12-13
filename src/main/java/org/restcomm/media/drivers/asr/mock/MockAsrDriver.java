@@ -21,10 +21,7 @@
 
 package org.restcomm.media.drivers.asr.mock;
 
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableScheduledFuture;
-import com.google.common.util.concurrent.ListeningScheduledExecutorService;
+import com.google.common.util.concurrent.*;
 import org.apache.log4j.Logger;
 import org.restcomm.media.drivers.asr.AsrDriver;
 import org.restcomm.media.drivers.asr.AsrDriverEventListener;
@@ -33,6 +30,7 @@ import org.restcomm.media.drivers.asr.AsrDriverException;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -68,6 +66,10 @@ public class MockAsrDriver implements AsrDriver {
         // Driver State
         this.running = new AtomicBoolean(false);
         this.timeout = DEFAULT_TIMEOUT;
+    }
+
+    public MockAsrDriver() {
+        this(MoreExecutors.listeningDecorator(Executors.newScheduledThreadPool(Runtime.getRuntime().availableProcessors())));
     }
 
     @Override
