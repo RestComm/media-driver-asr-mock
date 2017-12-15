@@ -13,10 +13,10 @@
     <groupId>org.restcomm.media.drivers.asr</groupId>
     <artifactId>asr-driver-mock</artifactId>
     <name>ASR Mock Driver</name>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>1.0.0-4</version>
 
     <properties>
-        <restcomm.media.version>7.0.0-SNAPSHOT</restcomm.media.version>
+        <restcomm.media.version>7.1.0-13</restcomm.media.version>
         <watson.stt.version>3.9.1</watson.stt.version>
         <junit.version>4.12</junit.version>
         <mockito.version>1.10.19</mockito.version>
