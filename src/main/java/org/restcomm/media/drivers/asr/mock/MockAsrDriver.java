@@ -29,9 +29,7 @@ import org.restcomm.media.drivers.asr.AsrDriverException;
 
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Callable;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -47,7 +45,7 @@ public class MockAsrDriver implements AsrDriver {
     static final String TRANSCRIPTION_FINAL = "Final transcription.";
 
     // Dependencies
-    private final ListeningScheduledExecutorService scheduler;
+    private final ListeningScheduledExecutorService scheduler = MoreExecutors.listeningDecorator(Executors.newScheduledThreadPool(2));
 
     // Driver State
     private AsrDriverEventListener eventListener;
@@ -60,16 +58,13 @@ public class MockAsrDriver implements AsrDriver {
     private int writeCount;
 
     public MockAsrDriver(ListeningScheduledExecutorService scheduler) {
-        // Dependencies
-        this.scheduler = scheduler;
-
         // Driver State
         this.running = new AtomicBoolean(false);
         this.timeout = DEFAULT_TIMEOUT;
     }
 
     public MockAsrDriver() {
-        this(MoreExecutors.listeningDecorator(Executors.newScheduledThreadPool(Runtime.getRuntime().availableProcessors())));
+        this(MoreExecutors.listeningDecorator(Executors.newSingleThreadScheduledExecutor()));
     }
 
     @Override
@@ -80,6 +75,9 @@ public class MockAsrDriver implements AsrDriver {
                 switch (parameter) {
                     case TIMEOUT:
                         this.timeout = Integer.parseInt(entry.getValue());
+                        if (log.isDebugEnabled()) {
+                            log.debug("TIMEOUT is configured to " + this.timeout);
+                        }
                         break;
 
                     default:
@@ -99,17 +97,29 @@ public class MockAsrDriver implements AsrDriver {
                 @Override
                 public void onSuccess(String result) {
                     if (MockAsrDriver.this.eventListener != null) {
+                        if (log.isDebugEnabled()) {
+                            log.debug("ASR Operation successful! Result: " + result + ". Final: " + true);
+                        }
                         MockAsrDriver.this.eventListener.onSpeechRecognized(result, true);
+                        scheduler.shutdown();
                     }
                 }
 
                 @Override
                 public void onFailure(Throwable t) {
-                    if (MockAsrDriver.this.eventListener != null) {
+                    if (t instanceof CancellationException) {
+                        log.warn("Operation was canceled.");
+                    } else if (MockAsrDriver.this.eventListener != null) {
+                        log.error("ASR Operation Failed", t);
                         MockAsrDriver.this.eventListener.onError(new AsrDriverException(t));
                     }
+                    scheduler.shutdown();
                 }
             });
+
+            if (log.isDebugEnabled()) {
+                log.debug("Started recognition process. Result will be received in " + this.timeout + "ms.");
+            }
         } else {
             throw new IllegalStateException("ASR Driver is already running.");
         }
@@ -118,6 +128,9 @@ public class MockAsrDriver implements AsrDriver {
     @Override
     public void finishRecognizing() {
         if (this.running.compareAndSet(true, false)) {
+            if (log.isDebugEnabled()) {
+                log.debug("Canceling future transcription task.");
+            }
             this.future.cancel(false);
         } else {
             throw new IllegalStateException("ASR Driver is already stopped.");
@@ -144,7 +157,7 @@ public class MockAsrDriver implements AsrDriver {
 
     @Override
     public int getResponseTimeoutInMilliseconds() {
-        return 0;
+        return 1000;
     }
 
     int getOctetCount() {
